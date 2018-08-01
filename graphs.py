@@ -16,12 +16,21 @@ class MixedGraph (nx.Graph):
                 self.add_edge(a, b)
                 self.set_orient(a, b, Mark.CIRCLE, Mark.CIRCLE)
 
+    @classmethod
+    def complete(cls, nodes):
+        return cls(nodes, itertools.combinations(nodes(), 2))
+
     # def complete(self):
     #     self.add_edges_from([ e for e in itertools.combinations(self.nodes(), 2) ])
 
     def add_edge(self, u, v, attr_dict=None, **attr):
         super(MixedGraph, self).add_edge(u, v, attr_dict, **attr)
         self.set_orient(u, v, Mark.CIRCLE, Mark.CIRCLE)
+
+    def edges_both(self):
+        for a, b in super(MixedGraph, self).edges():
+            yield a, b
+            yield b, a
 
     def set_orient(self, a, b, mark_a, mark_b):
         mark_a_old, mark_b_old = self.get_orient(a, b)
@@ -48,7 +57,7 @@ class MixedGraph (nx.Graph):
                 rets.append((a, b, c))
         return rets
 
-    def get_vees(self):
+    def get_unshields(self):
         rets = []
         for a, b, c in itertools.combinations(self.nodes(), 3):
             if self.has_edge(a, b) and self.has_edge(b, c) and (not self.has_edge(a, c)):
