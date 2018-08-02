@@ -28,7 +28,7 @@ def find_skeleton(nodes, conds=None):
 
     unshields = skel.get_unshields()
     # unshield_trips_blank = { (a, c) for a, b, c in unshield_trips }  # do we need this? line 19
-    return skel, seps, unshields
+    return skel, seps, unshields  #zzz do we really need to pass around unshields?
 
 
 #zzz TODO
@@ -69,5 +69,67 @@ def final_skeleton(skel, seps, conds=None):
 #zzz TODO
 def poss_dsep(g, x):
     return []
+
+
+def run_fci(nodes, conds=None):
+
+    skel, seps, unshields = find_skeleton(nodes, conds)
+
+    skel, seps = orient_vees(skel, seps, unshields)
+
+    skel, seps, unshields = final_skeleton(skel, seps, conds)
+
+    skel, seps = orient_vees(skel, seps, unshields)
+
+    g = orient_edges(skel)
+
+    return g, seps
+
+
+#zzz TODO
+def orient_edges(skel):
+    return skel
+
+
+def orient_r1(g):
+    count = 0
+    for alpha, beta, gamma in g.get_unshields_both():
+        if (g.get_orient(alpha, beta)[1] == graphs.Mark.ARROW) and \
+                (g.get_orient(beta, gamma)[0] == graphs.Mark.CIRCLE):
+            g.set_orient(beta, gamma, graphs.Mark.EMPTY, graphs.Mark.ARROW)
+            count += 1
+    return count
+
+
+def orient_r2(g):
+    for tri in g.get_triangles():
+        for alpha, beta, gamma in itertools.permutations(tri, 3):
+            if (g.get_orient(alpha, beta) == (graphs.Mark.EMPTY, graphs.Mark.ARROW)) and \
+                    (g.get_orient(beta, gamma)[1] == graphs.Mark.ARROW)
+
+
+def match_edge_triple(g, alpha, beta, gamma, mark_0, mark_1, mark_2, mark_3):
+    if not match_edge_pair(g, alpha, beta, mark_0, mark_1):
+        return False
+    if not match_edge_pair(g, beta, gamma, mark_2, mark_3):
+        return False
+    return True
+
+
+def match_edge_pair(g, alpha, beta, mark_0, mark_1):
+    mark_alpha, mark_beta = g.get_orient(alpha, beta)
+    if (mark_0 is not None) and (mark_alpha != mark_0):
+        return False
+    if (mark_1 is not None) and (mark_beta != mark_1):
+        return False
+    return True
+
+
+
+
+
+
+
+
 
 

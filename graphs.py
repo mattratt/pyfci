@@ -57,12 +57,26 @@ class MixedGraph (nx.Graph):
                 rets.append((a, b, c))
         return rets
 
+    def get_connected_triples(self, both=False):
+        rets = []
+        for beta in self.nodes():
+            for alpha, gamma in itertools.combinations(self.neighbors(node), 2):
+                rets.append((alpha, beta, gamma))
+                if both:
+                    rets.append((gamma, beta, alpha))
+        return rets
+
     def get_unshields(self):
         rets = []
         for a, b, c in itertools.combinations(self.nodes(), 3):
             if self.has_edge(a, b) and self.has_edge(b, c) and (not self.has_edge(a, c)):
                 rets.append((a, b, c))
         return rets
+
+    def get_unshields_both(self):
+        unshields = self.get_unshields()
+        unshields_rev = [(c, b, a) for a, b, c in unshields]
+        return unshields + unshields_rev
 
     def get_triangles(self):
         triangles = set()
