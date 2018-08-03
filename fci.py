@@ -1,6 +1,6 @@
 import itertools
 import graphs
-
+from graphs import Mark
 
 
 MAX_ORDER = 10
@@ -91,38 +91,90 @@ def orient_edges(skel):
     return skel
 
 
+
+# Taken from Zhang, "On the completeness of orientation rules for
+# causal discovery in the presence of latent confounders and selection
+# bias" (2008)
+# https://doi.org/10.1016/j.artint.2008.08.001
+
 def orient_r1(g):
     count = 0
     for alpha, beta, gamma in g.get_unshields_both():
-        if (g.get_orient(alpha, beta)[1] == graphs.Mark.ARROW) and \
-                (g.get_orient(beta, gamma)[0] == graphs.Mark.CIRCLE):
-            g.set_orient(beta, gamma, graphs.Mark.EMPTY, graphs.Mark.ARROW)
+        if match_edge_unshield(g, alpha, None, Mark.ARROW, beta, Mark.CIRCLE, None, gamma):
+            g.set_orient(beta, gamma, graphs.Mark.TAIL, graphs.Mark.ARROW)
             count += 1
     return count
 
 
 def orient_r2(g):
+    count = 0
     for tri in g.get_triangles():
         for alpha, beta, gamma in itertools.permutations(tri, 3):
-            if (g.get_orient(alpha, beta) == (graphs.Mark.EMPTY, graphs.Mark.ARROW)) and \
-                    (g.get_orient(beta, gamma)[1] == graphs.Mark.ARROW)
+            if match_edges_tri(g, alpha, Mark.TAIL, Mark.ARROW, beta,
+                               None, Mark.ARROW, gamma, None, Mark.CIRCLE) or \
+                    match_edges_tri(g, alpha, None, Mark.ARROW, beta,
+                                    Mark.TAIL, Mark.ARROW, gamma, None, Mark.CIRCLE):
+                g.set_orient(alpha, gamma, None, Mark.ARROW)
+                count += 1
+    return count
 
 
-def match_edge_triple(g, alpha, beta, gamma, mark_0, mark_1, mark_2, mark_3):
-    if not match_edge_pair(g, alpha, beta, mark_0, mark_1):
-        return False
-    if not match_edge_pair(g, beta, gamma, mark_2, mark_3):
-        return False
-    return True
+def orient_r3(g):
+    count = 0
+    unshields = g.get_unshields_both()
+    for alpha, beta, gamma in unshields:
+        for alpha2, delta, gamma2 in unshields:
+            if (alpha == alpha2) and (gamma == gamma2) and (beta != delta):
+                if match_edge_unshield(g, alpha, None, Mark.ARROW, beta, Mark.ARROW, None, gamma) and \
+                        match_edge_unshield(g, alpha, Mark.CIRCLE, delta, Mark.CIRCLE, None, gamma) and \
+                        match_edge(g, delta, None, Mark.CIRCLE, beta):
+                    g.set_orient(delta, beta, None, Mark.ARROW)
+                    count += 1
+    return count
 
 
-def match_edge_pair(g, alpha, beta, mark_0, mark_1):
+# need to think about the effect of previous iterations on discriminating paths --- could an
+# application of this rule create new paths for later iterations?  if so, we'll miss them
+def orient_r4(g, sepsets):
+    count = 0
+    for path in g.discriminating_paths():
+        if not g.is_discriminating(path):  # re-check in case something changed in previous iter
+            continue
+        delta = path[0]
+        alpha = path[-3]
+        beta = path[-2]
+        gamma = path[-1]
+        if match_edge(g, beta, Mark.CIRCLE, None, gamma):
+            if beta in sepsets[(delta, gamma)]:
+                g.set_orient(beta, gamma, Mark.TAIL, Mark.ARROW)
+            else:
+                g.set_orient(alpha, beta, Mark.ARROW, Mark.ARROW)
+                g.set_orient(beta, gamma, Mark.ARROW, Mark.ARROW)
+            count += 1
+    return count
+
+
+def match_edge(g, alpha, mark_ab0, mark_ab1, beta):
     mark_alpha, mark_beta = g.get_orient(alpha, beta)
-    if (mark_0 is not None) and (mark_alpha != mark_0):
+    if (mark_ab0 is not None) and (mark_alpha != mark_ab0):
         return False
-    if (mark_1 is not None) and (mark_beta != mark_1):
+    if (mark_ab1 is not None) and (mark_beta != mark_ab1):
         return False
     return True
+
+
+def match_edge_unshield(g, alpha, mark_ab0, mark_ab1, beta, mark_bg0, mark_bg1, gamma):
+    return match_edge(g, alpha, mark_ab0, mark_ab1, beta) and \
+           match_edge(g, beta, mark_bg0, mark_bg1, gamma)
+
+
+def match_edges_tri(g, alpha, mark_ab0, mark_ab1, beta, mark_bg0, mark_bg1, gamma, mark_ag0, mark_ag1):
+    return match_edge(g, alpha, mark_ab0, mark_ab1, beta) and \
+           match_edge(g, beta, mark_bg0, mark_bg1, gamma) and \
+           match_edge(g, alpha, mark_ag0, mark_ag1, gamma)
+
+
+
 
 
 

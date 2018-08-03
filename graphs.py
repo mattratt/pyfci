@@ -3,8 +3,11 @@ import networkx as nx
 from enum import Enum
 
 
-Mark = Enum('Mark', 'CIRCLE EMPTY ARROW')
-
+# Mark = Enum('Mark', 'CIRCLE TAIL ARROW')
+class Mark(Enum):
+    CIRCLE = 1
+    TAIL = 2
+    ARROW = 3
 
 class MixedGraph (nx.Graph):
     def __init__(self, vertices, edges=None):
@@ -112,6 +115,46 @@ class PartiallyOrientedGraph (MixedGraph):
 
     def get_noncolliders(self):
         return self.noncolliders
+
+
+class MaximalAncestralGraph(MixedGraph):
+    def is_parent(self, a, b):
+        return self.has_edge(a, b) and \
+               (self.get_orient(a, b) == (Mark.TAIL, Mark.ARROW))  #zzz does this need to be empty
+                                                                    # or is circle okay?
+
+    def is_collider(self, a, b, c):
+        return self.has_edge(a, b) and self.has_edge(b, c) and \
+               (self.get_orient(a, b)[1] == Mark.ARROW) and \
+               (self.get_orient(b, c)[0] == Mark.ARROW)
+
+    def is_discriminating(self, path):
+        #zzz can we assume paths exist?
+        # for pos in range(1, len(path)):
+        #     if not self.has_edge(path[pos-1], path[pos]):
+        #         return False
+        if len(path) < 4:
+            return False
+        # path is x, ..., w, v, y
+        x = path[0]
+        y = path[-1]
+        v = path[-2]
+        if self.has_edge(x, y):
+            return False
+        for pos in range(1, len(path)-2):
+            if not (self.is_collider(path[pos-1], path[pos], path[pos+1]) and \
+                    self.is_parent(path[pos], y)):
+                return False
+        return True
+
+    def discriminating_paths(self):
+        rets = []
+        for s in self.nodes():
+            for t in self.nodes():
+                for path in nx.all_simple_paths(self, s, t):
+                    if self.is_discriminating(path):
+                        rets.append(path)
+        return rets
 
 
 
