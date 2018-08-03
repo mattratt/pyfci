@@ -140,12 +140,12 @@ def orient_r3(g):
 
 #zzz Todo: need to think about the effect of previous iterations on
 # discriminating paths --- could an application of this rule create
-# new paths for later iterations?  To be on the safe side, we exit
-# after one change is made (which will greatly increase the number
-# of simplepath searches.
-#
-# Currently thinking that this is too conservative and should change
+# new paths for later iterations?  To be on the safe side, we could
+# exit after one change is made (which will greatly increase the number
+# of simplepath searches.  Currently thinking that this is not
+# necessary.
 def orient_r4(g, sepsets):
+    count = 0
     for path in g.all_simple_paths(min_len=4):
         if g.is_discriminating(path):
             delta = path[0]
@@ -158,8 +158,8 @@ def orient_r4(g, sepsets):
                 else:
                     g.set_orient(alpha, beta, Mark.ARROW, Mark.ARROW)
                     g.set_orient(beta, gamma, Mark.ARROW, Mark.ARROW)
-                return 1  # unlike other rules, a call to orient_r4() makes at most one change
-    return 0
+                count += 1
+    return count
 
 
 def match_edge(g, alpha, mark_ab0, mark_ab1, beta):
