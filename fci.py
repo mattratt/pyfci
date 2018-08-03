@@ -81,15 +81,20 @@ def run_fci(nodes, conds=None):
 
     skel, seps = orient_vees(skel, seps, unshields)
 
-    g = orient_edges(skel)
+    g = orient_edges(skel, seps)
 
     return g, seps
 
 
-#zzz TODO
-def orient_edges(skel):
+def orient_edges(skel, sepsets):
+    changes = 1
+    while changes > 0:
+        changes = 0
+        changes += orient_r1(skel)
+        changes += orient_r2(skel)
+        changes += orient_r3(skel)
+        changes += orient_r4(skel, sepsets)
     return skel
-
 
 
 # Taken from Zhang, "On the completeness of orientation rules for
@@ -133,25 +138,28 @@ def orient_r3(g):
     return count
 
 
-# need to think about the effect of previous iterations on discriminating paths --- could an
-# application of this rule create new paths for later iterations?  if so, we'll miss them
+#zzz Todo: need to think about the effect of previous iterations on
+# discriminating paths --- could an application of this rule create
+# new paths for later iterations?  To be on the safe side, we exit
+# after one change is made (which will greatly increase the number
+# of simplepath searches.
+#
+# Currently thinking that this is too conservative and should change
 def orient_r4(g, sepsets):
-    count = 0
-    for path in g.discriminating_paths():
-        if not g.is_discriminating(path):  # re-check in case something changed in previous iter
-            continue
-        delta = path[0]
-        alpha = path[-3]
-        beta = path[-2]
-        gamma = path[-1]
-        if match_edge(g, beta, Mark.CIRCLE, None, gamma):
-            if beta in sepsets[(delta, gamma)]:
-                g.set_orient(beta, gamma, Mark.TAIL, Mark.ARROW)
-            else:
-                g.set_orient(alpha, beta, Mark.ARROW, Mark.ARROW)
-                g.set_orient(beta, gamma, Mark.ARROW, Mark.ARROW)
-            count += 1
-    return count
+    for path in g.all_simple_paths(min_len=4):
+        if g.is_discriminating(path):
+            delta = path[0]
+            alpha = path[-3]
+            beta = path[-2]
+            gamma = path[-1]
+            if match_edge(g, beta, Mark.CIRCLE, None, gamma):
+                if beta in sepsets[(delta, gamma)]:
+                    g.set_orient(beta, gamma, Mark.TAIL, Mark.ARROW)
+                else:
+                    g.set_orient(alpha, beta, Mark.ARROW, Mark.ARROW)
+                    g.set_orient(beta, gamma, Mark.ARROW, Mark.ARROW)
+                return 1  # unlike other rules, a call to orient_r4() makes at most one change
+    return 0
 
 
 def match_edge(g, alpha, mark_ab0, mark_ab1, beta):
