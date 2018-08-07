@@ -128,6 +128,9 @@ class MaximalAncestralGraph(MixedGraph):
                (self.get_orient(a, b)[1] == Mark.ARROW) and \
                (self.get_orient(b, c)[0] == Mark.ARROW)
 
+    def is_triangle(self, a, b, c):
+        return self.has_edge(a, b) and self.has_edge(b, c) and self.has_edge(c, a)
+
     def is_discriminating(self, path):
         #zzz can we assume paths exist?
         # for pos in range(1, len(path)):
@@ -142,19 +145,21 @@ class MaximalAncestralGraph(MixedGraph):
         if self.has_edge(x, y):
             return False
         for pos in range(1, len(path)-2):
-            if not (self.is_collider(path[pos-1], path[pos], path[pos+1]) and \
+            if not (self.is_collider(path[pos-1], path[pos], path[pos+1]) and
                     self.is_parent(path[pos], y)):
                 return False
         return True
 
-    def discriminating_paths(self):
-        rets = []
-        for s in self.nodes():
-            for t in self.nodes():
-                for path in nx.all_simple_paths(self, s, t):
-                    if self.is_discriminating(path):
-                        rets.append(path)
-        return rets
+    def all_simple_paths(self, starts=None, ends=None, min_len=None, max_len=None):
+        if starts is None:
+            starts = self.nodes()
+        if ends is None:
+            ends = self.nodes()
+        for s in starts:
+            for t in ends:
+                for path in nx.all_simple_paths(self, s, t, max_len):
+                    if (min_len is None) or (len(path) >= min_len):
+                        yield path
 
 
 
