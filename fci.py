@@ -6,6 +6,11 @@ from graphs import Mark
 MAX_ORDER = 10
 
 
+# Taken from Colombo et al., "Learning high-dimensional directed
+# acyclic graphs with latent and selection variables" (2012)
+# https://projecteuclid.org/euclid.aos/1333567191
+
+
 # Algorithm 4.1
 def find_skeleton(nodes, conds=None):
     if conds is None:
@@ -26,9 +31,10 @@ def find_skeleton(nodes, conds=None):
                         seps[(i, j)] = seps[(j, i)] = y
                         break
 
-    unshields = skel.get_unshields()
+    # unshields = skel.get_unshields()
     # unshield_trips_blank = { (a, c) for a, b, c in unshield_trips }  # do we need this? line 19
-    return skel, seps, unshields  #zzz do we really need to pass around unshields?
+    # return skel, seps, unshields  #zzz do we really need to pass around unshields?
+    return skel, seps
 
 
 #zzz TODO
@@ -37,7 +43,8 @@ def cond_indy(x, y, z):
 
 
 # Algorithm 4.2
-def orient_vees(skel, seps, unshields):
+def orient_vees(skel, seps):
+    unshields = skel.get_unshields()
     for i, j, k in unshields:
         if j not in seps[(i, k)]:
             skel.set_orient(i, j, None, graphs.Mark.ARROW)
@@ -62,24 +69,42 @@ def final_skeleton(skel, seps, conds=None):
 
     for s, t in skel.edges():
         skel.set_orient(s, t, graphs.Mark.CIRCLE, graphs.Mark.CIRCLE)
-    unshields = skel.get_unshields()
-    return skel, seps, unshields
+    # unshields = skel.get_unshields()
+    # return skel, seps, unshields
+    return skel, seps
 
 
-#zzz TODO
-def poss_dsep(g, x):
-    return []
+# Definition 3.3
+def poss_dsep(g, xi):
+    rets = set()
+    for path in g.all_simple_paths(starts=[xi], min_len=3):
+        path_is_good = True
+        for pos in range(2, len(path)):
+            xm = path[pos-2]
+            xl = path[pos-1]
+            xh = path[pos]
+            if not g.is_collider(xm, xl, xh) or g.is_triangle(xm, xl, xh):
+                path_is_good = False
+                break
+        if path_is_good:
+            xk = path[-1]
+            rets.add(xk)
+    return rets
 
 
 def run_fci(nodes, conds=None):
 
-    skel, seps, unshields = find_skeleton(nodes, conds)
+    # skel, seps, unshields = find_skeleton(nodes, conds)
+    skel, seps = find_skeleton(nodes, conds)
 
-    skel, seps = orient_vees(skel, seps, unshields)
+    # skel, seps = orient_vees(skel, seps, unshields)
+    skel, seps = orient_vees(skel, seps)
 
-    skel, seps, unshields = final_skeleton(skel, seps, conds)
+    # skel, seps, unshields = final_skeleton(skel, seps, conds)
+    skel, seps = final_skeleton(skel, seps, conds)
 
-    skel, seps = orient_vees(skel, seps, unshields)
+    # skel, seps = orient_vees(skel, seps, unshields)
+    skel, seps = orient_vees(skel, seps)
 
     g = orient_edges(skel, seps)
 
