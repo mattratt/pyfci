@@ -88,9 +88,9 @@ def r2zscore(r, n):
     return z
 
 
-def zscore_pval(z):  #zzz need to figure out correct calc
-    # return 2.0*(1.0 - stats.norm.cdf(abs(z)))
-    return -2*stats.norm.cdf(-np.abs(z))
+def zscore_pval(z):
+    return 2.0*(1.0 - stats.norm.cdf(abs(z)))  # two-tailed
+
 
 
 def chisq_3d(xvals, yvals, condvals):
